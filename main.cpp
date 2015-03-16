@@ -20,6 +20,8 @@
 #include <fstream>
 #include <sstream>
 
+#define LIMIT 1000
+
 using namespace std;
 
 typedef struct _e
@@ -32,8 +34,8 @@ typedef struct _e
 
 typedef struct
 {
-	Edge  **edges;
-	vector<int> degree;
+	Edge  *edges[LIMIT];
+	int degree[LIMIT];
 	int numberOfEdges;
 	int numberOfNodes;
 
@@ -58,42 +60,72 @@ void help()
 
 }
 
-Graph *readGraph(string _filename)
+void InsertEdge(Graph *graph,int source, int target, bool directed)
 {
-  Graph *graph = new Graph;
+	Edge *e;
+	e = ( Edge* ) malloc ( sizeof(Edge) );
+
+	if (e == NULL)
+	{
+		return;
+	}
+
+	e->weight = 1;
+	e->capacity = 0;
+	e->target = target;
+	e->next = graph->edges[source];
+
+	graph->edges[source] = e; 
+	graph->degree[source] += 1;
+	
+	if (directed == false)
+	{
+		InsertEdge(graph,target,source,true);
+	}
+	else
+	{
+		graph->numberOfEdges++;
+	}
+}
+
+Graph *readGraph(Graph *graph, string _filename)
+{
 
   ifstream file (_filename);
   string line;
   int nNodes = 0;
 
-  if (file.good())
+  if ( file.good() )
   {
     int lineCount = 0;
 
     while ( getline (file,line) )
     {
-      if (lineCount == 0) {
+
+      if (lineCount == 0) 
+      {
+
         stringstream s(line);
         s >> nNodes;
+        cout<<"nNodes "<<nNodes<<endl;
         nNodes++;
-        graph->numberOfNodes = nNodes;
-        graph->edges = new Edge*[nNodes];
-        
-        for (int i = 0; i < nNodes; i++) {
-          graph->edges[i] = new Edge[nNodes];
 
-          for (int j = 0; j < nNodes; j++) {
-            graph->edges[i][j].target = 0;
-          }
+        graph->numberOfNodes = nNodes;
+        graph->numberOfEdges = 0;
+        
+        for (int i = 0; i < LIMIT; i++) 
+        {
+          graph->edges[i] = NULL;
+          graph->degree[i] = 0;
         }
 
-        graph->degree = vector<int>(nNodes, 0);
-
         lineCount++;
+
         continue;
       }
 
       stringstream ss(line); // Insert the string into a stream
+      
       int source;
       int target;
 
@@ -101,20 +133,15 @@ Graph *readGraph(string _filename)
 
       cout << source << " " << target << endl;
 
-      graph->degree[source] += 1;
-
-      Edge e;
-      e.target = target;
-      e.weight = 1;
-      e.capacity = 0;
-      e.next = NULL;
-
-      graph->edges[source][graph->degree[source]] = e;
+      InsertEdge(graph,source, target, false);
 
       lineCount++;
     }
+
     file.close();
-  } else {
+  } 
+  else
+  {
     printf("Could not open graph file.\n");
     exit(EXIT_FAILURE);
   }
@@ -156,7 +183,7 @@ vector< vector<int> > readTrafficMatrix(int nodes, string _filename)
  */
 void shortestPath( Graph *graph, int start) 
 {
-	Edge *p; 			//vetor temporário
+	Edge *p; 					//vetor temporário
 	vector<bool> inTree;		//O nó já esta na árvore?
 	vector<int> distance;		//armazena distância para start
 	int v;						//nó atual
@@ -166,7 +193,7 @@ void shortestPath( Graph *graph, int start)
 
 
 	inTree = vector<bool> ( graph->numberOfNodes, false);
-	distance = vector<int> ( graph->numberOfNodes, std::numeric_limits<int>::max());
+	distance = vector<int> ( graph->numberOfNodes, std::numeric_limits<int>::max() );
 	parent = vector<int> ( graph->numberOfNodes, -1);
 
 	distance[start] = 0;
@@ -174,6 +201,7 @@ void shortestPath( Graph *graph, int start)
 
 	while( inTree[v] == false)
 	{
+		cout<<"v "<<v<<" start "<<start<<endl;
 		inTree[v] = true;
 		p = graph->edges[v];
 
@@ -185,7 +213,7 @@ void shortestPath( Graph *graph, int start)
 			/**
 			 * Verificação de caminho
 			 */
-			if ( distance[w] > ( distance[w] + weight ) )
+			if ( distance[w] > ( distance[v] + weight ) )
 			{
 				distance[w] = distance[w] + weight;
 				parent[w] = v;
@@ -194,16 +222,17 @@ void shortestPath( Graph *graph, int start)
 			p = p->next;
 		}
 
-		v = 0;
+		v = 1;
 
 		dist = std::numeric_limits<int>::max();
 
-		for (int i = 0; i < graph->numberOfNodes; i++)
+		for (int i = 1; i < graph->numberOfNodes; i++)
 		{
 			if ( ( inTree[i] == false ) && ( dist > distance[i] ) )
 			{
 				dist = distance[i];
-				v = i;		
+				v = i;
+				//cout<<"i "<<i<<" distance "<<distance[i]<<endl;		
 			}
 		}
 	}
@@ -224,14 +253,34 @@ int main(int argc, const char * argv[])
 
   string arquivoTrafego = argv[2];
 
-  Graph *graph = readGraph(string(argv[1]));
+  Graph *graph;
+
+  graph = (Graph*) malloc ( sizeof(Graph) );
+
+  if (graph == NULL)
+  {
+  	return EXIT_FAILURE;
+  }
+
+  readGraph(graph,string(argv[1]));
+
   vector< vector<int> > trafficMatrix = readTrafficMatrix(graph->numberOfNodes, string(argv[2]));
 
-  for (int i = 1; i < graph->numberOfNodes; i++) {
+	
+	Edge *p;  
+
+  for (int i = 1; i < graph->numberOfNodes; i++) 
+  {
     printf("Node %d: ", i);
-    for (int j = 1; j < graph->numberOfNodes; j++) {
-      printf("%d", graph->edges[i][j].target);
-    }
+   	
+   	p = graph->edges[i];
+
+   	while(p != NULL)
+   	{
+   		cout<<p->target<<"\t";
+   		p = p->next;
+   	}
+
 
     printf("\n---------------\n");
   }
@@ -242,6 +291,12 @@ int main(int argc, const char * argv[])
   //   }
   //   printf("\n");
   // }
+
+  for (int i = 1; i < graph->numberOfNodes; i++)
+  {
+  	cout<<"source "<<i<<"\n\n"<<endl;
+  	shortestPath(graph,i);
+  }
 
   return EXIT_SUCCESS;
 }
