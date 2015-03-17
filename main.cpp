@@ -70,7 +70,7 @@ void InsertEdge(Graph *graph,int source, int target, bool directed)
 		return;
 	}
 
-	e->weight = 1;
+	e->weight = 0;//peso inicial das arestas é zero
 	e->capacity = std::numeric_limits<int>::max(); //inicia aresta com capacidade máxima
 	e->target = target;
 	e->next = graph->edges[source];
@@ -169,8 +169,11 @@ vector< vector<int> > readTrafficMatrix(int nodes, string _filename)
 
       matrix[source][target] = traffic;
     }
+
     file.close();
-  } else {
+  } 
+  else
+  {
     printf("Could not open traffic file.\n");
     exit(EXIT_FAILURE);
   }
@@ -181,50 +184,53 @@ vector< vector<int> > readTrafficMatrix(int nodes, string _filename)
 /**
  * Implementação para encontrar um caminho mínimo de u até v
  */
-void shortestPath( Graph *graph, int source, int target) 
+vector<int> shortestPath( Graph *graph, int source, int target) 
 {
 	Edge *p; 					//vetor temporário
 	vector<bool> inTree;		//O nó já esta na árvore?
-	vector<int> distance;		//armazena distância para source
+	vector<int> capacities;		//armazena distância para source
 	int v;						//nó atual
 	int w;						//candidato a próximo nó
-	int weight;					//peso da aresta
-	int dist;					//melhor distância atual para o nó de partida
-	vector<int> path;
+	int capacity;				//peso da aresta
+	int cap;					//melhor distância atual para o nó de partida
+	vector<int> parent = vector<int> (graph->numberOfNodes, -1);
 
 	inTree = vector<bool> ( graph->numberOfNodes, false);
-	distance = vector<int> ( graph->numberOfNodes, std::numeric_limits<int>::max() );
+	capacities = vector<int> ( graph->numberOfNodes, 0);
 	
 	v = source;
 
-	distance[v] = 0;
+	//std::numeric_limits<int>::max()
+
+	capacities[v] = 90;
 	inTree[v] = true;
 	cout<<"source "<<source<<" target "<<target<<endl;
 
 	while( inTree[target] == false )
 	{	
-
+		cout<<"novo source "<<v<<endl;
 		p = graph->edges[v];//p recebe os nós adjacentes de v
 
 		if (p == NULL)
 		{
 			cout<<"Grafo com nó "<<v<<" desconexo."<<endl;
-			return;
+			exit(1);
 		}
-
-		dist =  std::numeric_limits<int>::max();
 
 		while( p != NULL )
 		{
 			w = p->target; 
-			weight = p->weight;
+			capacity = p->weight;
+
+			//cout<<"capacity[ "<<w<<" ] = "<<capacities[w] <<" capacities[ "<<v<<"] = "<< capacities[v] <<" capacity "<<capacity<<endl;
 
 			/**
 			 * Verificação de caminho
 			 */
-			if ( distance[w] > ( distance[v] + weight ) && inTree[w] == false)
+			if ( capacities[w] < ( capacities[v] - capacity ) && inTree[w] == false)
 			{
-				distance[w] = distance[v] + weight;
+				capacities[w] = capacities[v] - capacity;
+				parent[v] = v;
 			}
 
 			if (target == w)	
@@ -236,12 +242,13 @@ void shortestPath( Graph *graph, int source, int target)
 		}
 
 		v = 1;
-		dist = std::numeric_limits<int>::max();
+		cap = 0;
 
 		for (int i = 1; i < graph->numberOfNodes; i++) 
 		{
-			if ( (inTree[i] == false) && (dist > distance[i]) ) {
-				dist = distance[i];
+			if ( ( inTree[i] == false ) && (cap < capacities[i]) ) 
+			{
+				cap = capacities[i];
 				v = i;
 			}
 		}
@@ -249,22 +256,86 @@ void shortestPath( Graph *graph, int source, int target)
 		inTree[v] = true;
 	}
 
-	cout<<"distance em target "<<distance[target]<<"\n\n"<<endl;
-	for (unsigned int i = 0; i < path.size(); i++)
+	vector<int> path;
+	
+	cout << "\n";
+
+	for (unsigned int i = 0; i < parent.size(); i++)
 	{
-		cout<<" "<<path[i];
+		if (parent[i] > -1) {
+			path.push_back(i);
+			cout << i << " ";
+		}
 	}
+
+	path.push_back(target);
+
+	return path;
+}
+
+void updateWeight(Graph *graph, vector< vector<int> > trafficMatrix)
+{
+	/**
+	 * Preenche com a demanda para nós adjacentes e
+	 * em seguida atualizada a capacidade das arestas
+	 */
+	for (int i = 1; i < graph->numberOfNodes; i++)
+	{
+		Edge *p;
+
+		p = graph->edges[i];
+
+		while(p != NULL)
+		{
+			int target = p->target;
+
+			if ( trafficMatrix[i][target] >= 0 )
+			{
+				cout<<"source"<<i<<"target"<<target<<" ddemanda "<<trafficMatrix[i][target]<<endl;
+				p->weight = trafficMatrix[i][target];
+				p->capacity = ( p->capacity - trafficMatrix[i][target] );
+			}
+
+			p = p->next;
+		}
+
+		cout<<"\n\n";
+
+		if (graph->edges[i] == NULL)
+		{
+			exit(EXIT_FAILURE);
+		}
+	}
+
 }
 
 void execute(Graph *graph, vector< vector<int> > traffic) 
 {
+
+	updateWeight(graph,traffic);
+
 	for (int u = 1; u < graph->numberOfNodes-1; u++)
   	{
 	  	for (int v = u+1; v < graph->numberOfNodes; v++)
 	  	{
 
-		  	shortestPath(graph,u,v);//busca caminho mínimo com maior capacidade disponível
-	  		
+		  	vector<int> path = shortestPath(graph,u,v);//busca caminho mínimo com maior capacidade disponível
+	  		int prev = -1;
+	  		Edge *p;
+			for (int j = 0; j < path.size(); j++) {
+				if (prev > 0) {
+					cout << "HA! " << prev << " " << path[j] << endl;
+					p = graph->edges[prev];
+
+					while (p->target != path[j]) {
+						p = p->next;
+					}
+
+					p->capacity -= traffic[prev][path[j]];
+				}
+
+				prev = path[j];
+			}
 	  	}
   	}
 
@@ -291,7 +362,6 @@ int main(int argc, const char * argv[])
   }
 
   readGraph(graph,string(argv[1]));
-
   vector< vector<int> > trafficMatrix = readTrafficMatrix(graph->numberOfNodes, string(argv[2]));
 
 	
@@ -308,17 +378,19 @@ int main(int argc, const char * argv[])
    		cout<<p->target<<"\t";
    		p = p->next;
    	}
-
-
     printf("\n---------------\n");
   }
 
-  // for (int i = 1; i < graph->numberOfNodes; i++) {
-  //   for (int j = 1; j < graph->numberOfNodes; j++) {
-  //     printf("%d ", trafficMatrix[i][j]);
-  //   }
-  //   printf("\n");
-  // }
+  for (int i = 1; i < graph->numberOfNodes; i++) 
+  {
+    for (int j = 1; j < graph->numberOfNodes; j++) 
+    {
+      printf("%d ", trafficMatrix[i][j]);
+    }
+    printf("\n");
+  }
+
+  execute(graph,trafficMatrix);//roteamento
 
   return EXIT_SUCCESS;
 }
