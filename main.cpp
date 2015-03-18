@@ -26,32 +26,21 @@ using namespace std;
 
 typedef struct _e
 {
-	int target;
-	int weight;
-	int capacity;
-	struct _e *next;
+	int target;					//destino
+	int weight; 				//peso atualizado da aresta
+	int capacity; 				//capacidade da aresta
+	struct _e *next;			//ponteiro para o próximo nó adjacente
+	unsigned int dirty; 		//bit correspodente a aresta ativa ou não
 }Edge;
 
 typedef struct
 {
-	Edge  *edges[LIMIT];
-	int degree[LIMIT];
-	int numberOfEdges;
-	int numberOfNodes;
+	Edge  *edges[LIMIT];	//matriz de arestas
+	int degree[LIMIT];		//grau do nó
+	int numberOfEdges;		//número de arestas
+	int numberOfNodes;		//número de nós
 
 }Graph;
-
-typedef struct _p
-{
-	vector<Edge> nodes;
-	int cost;
-}Path;
-
-typedef struct _t
-{
-	vector<Path> shortestPaths;
-
-}Traffic;
 
 int sumDemand; 
 
@@ -72,6 +61,7 @@ void InsertEdge(Graph *graph,int source, int target, bool directed)
 
 	e->weight = 0;//peso inicial das arestas é zero
 	e->target = target;
+	e->dirty = 1;
 	e->next = graph->edges[source];
 
 	graph->edges[source] = e; 
@@ -211,7 +201,6 @@ vector<int> shortestPath( Graph *graph, int source, int target)
 
 	while( inTree[target] == false )
 	{	
-		//cout<<"novo source "<<v<<endl;
 		p = graph->edges[v];//p recebe os nós adjacentes de v
 
 		if (p == NULL)
@@ -222,6 +211,11 @@ vector<int> shortestPath( Graph *graph, int source, int target)
 
 		while( p != NULL )
 		{
+			if ( p->dirty == 0 )
+			{
+				continue;
+			}
+
 			w = p->target; 
 			capacity = p->weight;//recebece o valor do peso da aresta
 
@@ -232,8 +226,6 @@ vector<int> shortestPath( Graph *graph, int source, int target)
 			{
 				capacities[w] = capacities[v] + capacity;
 				parent[v] = v;
-
-				//cout<<"VVVVVV "<<v<<endl;
 			}
 
 			if (target == w)	
@@ -261,7 +253,7 @@ vector<int> shortestPath( Graph *graph, int source, int target)
 
 	vector<int> path;
 	
-	cout << "Imprime caminho mínimo:\n";
+	//cout << "Imprime caminho mínimo:\n";
 
 	/**
 	 * insere caminho mínimo encontrado pelo algoritmo de Dijkstra
@@ -271,11 +263,11 @@ vector<int> shortestPath( Graph *graph, int source, int target)
 		if (parent[i] > -1) 
 		{
 			path.push_back(i);
-			cout << i << " ";
+			//cout << i << " ";
 		}
 	}
 
-	cout<<endl;
+	//cout<<endl;
 	path.push_back(target);
 
 	return path;
@@ -310,13 +302,17 @@ void updateWeight(Graph *graph, vector< vector<int> > trafficMatrix)
 			{
 				p->weight = trafficMatrix[i][target];
 				p->capacity -= p->weight ;//diminiu a capacidade da ligação
+
+				if (p->capacity == 0)
+				{
+					p->dirty = 0;//aresta passa a ser inativa
+				}
 			}
 
 			p = p->next;
 		}
 
 	}
-
 }
 
 /**
@@ -351,6 +347,11 @@ void updateCapacityAndWeightByPath(Graph *graph,vector<vector<int>> traffic,vect
 			p->capacity -= weight;
 			p->weight += weight;
 
+			if (p->capacity == 0)
+			{
+				p->dirty = 0;
+			}
+
 			p = graph->edges[ path[j] ];
 
 			while (p->target != prev && p != NULL) 
@@ -360,6 +361,11 @@ void updateCapacityAndWeightByPath(Graph *graph,vector<vector<int>> traffic,vect
 
 			p->capacity -= weight;
 			p->weight += weight;
+
+			if (p->capacity == 0)
+			{
+				p->dirty = 0;
+			}
 		}
 
 		prev = path[j];
@@ -418,7 +424,7 @@ void execute(Graph *graph, vector< vector<int> > traffic)
 		while(p != NULL)
 		{
 			p->capacity = maxCapacity;
-
+			p->dirty = 1;
 			p = p->next;
 		}
 	}
@@ -460,6 +466,34 @@ void execute(Graph *graph, vector< vector<int> > traffic)
 	  		}
 	  	}
   	}
+}
+
+void write(Graph *graph, string fileName) 
+{
+	vector<vector<int>> temp = vector<vector<int>> (graph->numberOfNodes,vector<int>(graph->numberOfNodes,0));
+	ofstream saida;
+
+    saida.open (fileName);
+
+	for (int i = 1; i < graph->numberOfNodes; i++)
+	{
+		Edge *p;
+
+		p = graph->edges[i];
+
+		while(p != NULL)
+		{
+			if (temp[i][p->target] == 0)
+			{
+				saida<<" "<<i<<" "<<p->target<<" - "<<p->weight<<endl;
+
+				temp[i][p->target] = 1;
+				temp[p->target][i] = 1;
+			}
+			p = p->next;
+		}
+	}
+
 }
 
 int main(int argc, const char * argv[])
@@ -512,21 +546,10 @@ int main(int argc, const char * argv[])
 
   execute(graph,trafficMatrix);//roteamento
 
+  string temp = "_output_file.txt";
+  string fileName = argv[1]+temp;
 
-  for (int i = 1; i < graph->numberOfNodes; i++)
-  {
-  	cout<<"Node "<<i<<endl;
-  	
-  	Edge *p;
-
-  	p = graph->edges[i];
-  	while(p != NULL)
-  	{
-  		cout<<" "<<p->target<<" - "<<p->weight<<endl;
-  		p = p->next;
-  	}
-  	cout<<"-------------------------------------------"<<endl;
-  }
+  write(graph,fileName);
 
   return EXIT_SUCCESS;
 }
