@@ -168,7 +168,9 @@ vector< vector<int> > readTrafficMatrix(int nodes, string _filename)
 
 		  ss >> source >> target >> traffic;
 
+
 		  matrix[source][target] = traffic;
+		  matrix[target][source] = traffic;
 
 		  sumDemand = sumDemand + traffic;
 		}
@@ -209,7 +211,7 @@ vector<int> shortestPath( Graph *graph, int source, int target)
 
 	while( inTree[target] == false )
 	{	
-		cout<<"novo source "<<v<<endl;
+		//cout<<"novo source "<<v<<endl;
 		p = graph->edges[v];//p recebe os nós adjacentes de v
 
 		if (p == NULL)
@@ -221,7 +223,7 @@ vector<int> shortestPath( Graph *graph, int source, int target)
 		while( p != NULL )
 		{
 			w = p->target; 
-			capacity = p->weight;
+			capacity = p->weight;//recebece o valor do peso da aresta
 
 			/**
 			 * Verificação de caminho
@@ -230,6 +232,8 @@ vector<int> shortestPath( Graph *graph, int source, int target)
 			{
 				capacities[w] = capacities[v] + capacity;
 				parent[v] = v;
+
+				//cout<<"VVVVVV "<<v<<endl;
 			}
 
 			if (target == w)	
@@ -257,24 +261,30 @@ vector<int> shortestPath( Graph *graph, int source, int target)
 
 	vector<int> path;
 	
-	cout << "\n";
+	cout << "Imprime caminho mínimo:\n";
 
 	/**
 	 * insere caminho mínimo encontrado pelo algoritmo de Dijkstra
 	 */
 	for (unsigned int i = 0; i < parent.size(); i++)
 	{
-		if (parent[i] > -1) {
+		if (parent[i] > -1) 
+		{
 			path.push_back(i);
 			cout << i << " ";
 		}
 	}
 
+	cout<<endl;
 	path.push_back(target);
 
 	return path;
 }
 
+/**
+ * Atualiza peso das arestas adjacentes
+ * recebendo o valor da demanda de u <-> v
+ */
 void updateWeight(Graph *graph, vector< vector<int> > trafficMatrix)
 {
 	/**
@@ -287,67 +297,107 @@ void updateWeight(Graph *graph, vector< vector<int> > trafficMatrix)
 
 		p = graph->edges[i];
 
+		if (graph->edges[i] == NULL)
+		{
+			exit(EXIT_FAILURE);
+		}
+
 		while(p != NULL)
 		{
 			int target = p->target;
 
 			if ( trafficMatrix[i][target] >= 0 )
 			{
-				cout<<"source"<<i<<"target"<<target<<" ddemanda "<<trafficMatrix[i][target]<<endl;
 				p->weight = trafficMatrix[i][target];
-				p->capacity = ( p->capacity - p->weight );//diminiu a capacidade da ligação
+				p->capacity -= p->weight ;//diminiu a capacidade da ligação
 			}
 
 			p = p->next;
 		}
 
-		cout<<"\n\n";
-
-		if (graph->edges[i] == NULL)
-		{
-			exit(EXIT_FAILURE);
-		}
 	}
 
 }
 
+/**
+ * Atualiza o peso e a capacidade das arestas pertencentes 
+ * ao caminho mínimo passado como parâmetro ( path )
+ */
 void updateCapacityAndWeightByPath(Graph *graph,vector<vector<int>> traffic,vector<int> path)
 {
 	int prev = -1;
 
 	Edge *p;
 
-	int weight = traffic[path[0]][path[path.size() - 1]];
+	int weight = traffic[ path[0] ][ path[ path.size() - 1 ] ];
 
 	for (unsigned int j = 0; j < path.size(); j++) 
 	{
-		cout << "path[j] " << path[j] << "weight " << weight << endl;
+		//cout << "path[ "<<j<<" ] " << path[j] << " weight " << weight << endl;
 		if (prev > 0) 
 		{
 			p = graph->edges[prev];
 
-			while (p->target != path[j]) 
+			if (p == NULL)
+			{
+				continue;
+			}
+
+			while (p->target != path[j] && p != NULL) 
 			{
 				p = p->next;
 			}
 
 			p->capacity -= weight;
+			p->weight += weight;
 
-			p = graph->edges[path[j]];
+			p = graph->edges[ path[j] ];
 
-			while (p->target != prev) 
+			while (p->target != prev && p != NULL) 
 			{
 				p = p->next;
 			}
 
-			if (traffic[path[j]][prev] > -1)  
-			{
-				p->capacity -= weight;
-			}
+			p->capacity -= weight;
+			p->weight += weight;
 		}
 
 		prev = path[j];
 	}
+
+	for (int i = 1; i < graph->numberOfNodes; i++)
+	{
+		p = graph->edges[i];
+		cout<<"node "<<i<<endl;
+		while(p != NULL)
+		{
+			cout<<" "<<p->target<<"( "<<p->capacity<<" , "<<p->weight<<" )";
+			p = p->next;
+		} 
+		cout<<endl;
+	}
+}
+
+/**
+ * Verifica nós adjacentes
+ */
+bool isAdjacent(Graph *graph,int source,int target)
+{
+	Edge *p;
+
+	p = graph->edges[source];
+
+	while(p != NULL	)
+	{
+		if (p->target == target)
+		{
+			return true;
+		}
+
+		p = p->next;
+	}
+
+	return false;
 }
 
 void execute(Graph *graph, vector< vector<int> > traffic) 
@@ -358,7 +408,8 @@ void execute(Graph *graph, vector< vector<int> > traffic)
 	 */
 	Edge *p;
 
-	int maxCapacity = sumDemand*0.7;//capacidade máxima considerada é 70% da soma total das demandas
+	int maxCapacity = sumDemand*0.8;//capacidade máxima considerada é 70% da soma total das demandas
+
 
 	for (int i = 1; i < graph->numberOfNodes; i++)
 	{
@@ -372,16 +423,41 @@ void execute(Graph *graph, vector< vector<int> > traffic)
 		}
 	}
 
+	cout<<"maxCapacity "<<maxCapacity<<endl;
+
 	updateWeight(graph,traffic);//atualiza peso das arestas adjacentes no estado inicial
 
-	for (int u = 1; u < graph->numberOfNodes-1; u++)
+	for (int i = 1; i < graph->numberOfNodes; i++)
+	{
+		p = graph->edges[i];
+		cout<<"node "<<i<<endl;
+		while(p != NULL)
+		{
+			cout<<" "<<p->target<<"( "<<p->capacity<<" , "<<p->weight<<" )";
+			p = p->next;
+		} 
+		cout<<endl;
+	}
+	/**
+	 * Busca caminho mínimo para nós não adjacentes que requerem demanda
+	 */
+	for (unsigned int u = 1; u < traffic.size(); u++)
   	{
-	  	for (int v = u+1; v < graph->numberOfNodes; v++)
+	  	for (unsigned int v = u+1; v < traffic[u].size(); v++)
 	  	{
+	  		if (traffic[u][v] == -1)
+	  		{
+	  			continue;
+	  		}
 
-		  	vector<int> path = shortestPath(graph,u,v);//busca caminho mínimo com maior capacidade disponível
+	  		bool ehAdjacent = isAdjacent(graph,u,v);//verifica se u e v são adjacentes
 
-	  		updateCapacityAndWeightByPath(graph,traffic,path);
+	  		if (!ehAdjacent)
+	  		{
+		  		vector<int> path = shortestPath(graph,u,v);//busca caminho mínimo com maior capacidade disponível
+	  			
+	  			updateCapacityAndWeightByPath(graph,traffic,path);
+	  		}
 	  	}
   	}
 }
@@ -435,6 +511,22 @@ int main(int argc, const char * argv[])
   }
 
   execute(graph,trafficMatrix);//roteamento
+
+
+  for (int i = 1; i < graph->numberOfNodes; i++)
+  {
+  	cout<<"Node "<<i<<endl;
+  	
+  	Edge *p;
+
+  	p = graph->edges[i];
+  	while(p != NULL)
+  	{
+  		cout<<" "<<p->target<<" - "<<p->weight<<endl;
+  		p = p->next;
+  	}
+  	cout<<"-------------------------------------------"<<endl;
+  }
 
   return EXIT_SUCCESS;
 }
