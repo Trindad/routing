@@ -196,13 +196,13 @@ vector<int> shortestPath( Graph *graph, int source, int target)
 	vector<int> parent = vector<int> (graph->numberOfNodes, -1);
 
 	inTree = vector<bool> ( graph->numberOfNodes, false);
-	capacities = vector<int> ( graph->numberOfNodes, 0);
+	capacities = vector<int> ( graph->numberOfNodes, std::numeric_limits<int>::max() );
 	
 	v = source;
 
 	//std::numeric_limits<int>::max()
 
-	capacities[v] = 90;
+	capacities[v] = 0;
 	inTree[v] = true;
 	cout<<"source "<<source<<" target "<<target<<endl;
 
@@ -227,9 +227,9 @@ vector<int> shortestPath( Graph *graph, int source, int target)
 			/**
 			 * Verificação de caminho
 			 */
-			if ( capacities[w] < ( capacities[v] - capacity ) && inTree[w] == false)
+			if ( capacities[w] > ( capacities[v] + capacity ) && inTree[w] == false)
 			{
-				capacities[w] = capacities[v] - capacity;
+				capacities[w] = capacities[v] + capacity;
 				parent[v] = v;
 			}
 
@@ -242,11 +242,11 @@ vector<int> shortestPath( Graph *graph, int source, int target)
 		}
 
 		v = 1;
-		cap = 0;
+		cap = std::numeric_limits<int>::max();
 
 		for (int i = 1; i < graph->numberOfNodes; i++) 
 		{
-			if ( ( inTree[i] == false ) && (cap < capacities[i]) ) 
+			if ( ( inTree[i] == false ) && (cap > capacities[i]) ) 
 			{
 				cap = capacities[i];
 				v = i;
@@ -321,13 +321,18 @@ void execute(Graph *graph, vector< vector<int> > traffic)
 
 		  	vector<int> path = shortestPath(graph,u,v);//busca caminho mínimo com maior capacidade disponível
 	  		int prev = -1;
+
 	  		Edge *p;
-			for (int j = 0; j < path.size(); j++) {
-				if (prev > 0) {
+
+			for (unsigned int j = 0; j < path.size(); j++) 
+			{
+				if (prev > 0) 
+				{
 					cout << "HA! " << prev << " " << path[j] << endl;
 					p = graph->edges[prev];
 
-					while (p->target != path[j]) {
+					while (p->target != path[j]) 
+					{
 						p = p->next;
 					}
 
