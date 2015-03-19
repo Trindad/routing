@@ -18,6 +18,7 @@
 #include <vector>
 #include <random>
 #include <cstdlib>
+#include <cstdio>
 #include <string>
 #include <fstream>
 #include <sstream>

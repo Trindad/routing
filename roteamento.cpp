@@ -449,6 +449,9 @@ void write(Graph *graph, string fileName)
 
     saida.open (fileName);
 
+    saida << "+----------+---------+------------+" << endl;
+    saida << "|  Origem  | Destino | Capacidade |" << endl;
+
 	for (int i = 1; i < graph->numberOfNodes; i++)
 	{
 		Edge *p;
@@ -459,7 +462,11 @@ void write(Graph *graph, string fileName)
 		{
 			if (temp[i][p->target] == 0)
 			{
-				saida<<" "<<i<<" "<<p->target<<" - "<<p->weight<<endl;
+    			saida << "+----------+---------+------------+" << endl;
+    			char str[100];
+    			sprintf(str, "| %*d | %*d | %*d |", 8, i, 7, p->target, 10, p->weight);
+
+				saida << str <<endl;
 
 				temp[i][p->target] = 1;
 				temp[p->target][i] = 1;
@@ -467,4 +474,6 @@ void write(Graph *graph, string fileName)
 			p = p->next;
 		}
 	}
+
+	saida << "+----------+---------+------------+" << endl;
 }
