@@ -329,7 +329,7 @@ void updateCapacityAndWeightByPath(Graph *graph,vector<vector<int>> traffic,vect
 
 	for (unsigned int j = 0; j < path.size(); j++) 
 	{
-		//cout << "path[ "<<j<<" ] " << path[j] << " weight " << weight << endl;
+		cout << "path[ "<<j<<" ] " << path[j] << " weight " << weight << endl;
 		if (prev > 0) 
 		{
 			p = graph->edges[prev];
@@ -339,32 +339,36 @@ void updateCapacityAndWeightByPath(Graph *graph,vector<vector<int>> traffic,vect
 				continue;
 			}
 
-			while (p->target != path[j] && p != NULL) 
+			while (p != NULL && p->target != path[j]) 
 			{
 				p = p->next;
 			}
 
-			p->capacity -= weight;
-			p->weight += weight;
+			if (p) {
+				p->capacity -= weight;
+				p->weight += weight;
 
-			if (p->capacity == 0)
-			{
-				p->dirty = 0;
+				if (p->capacity == 0)
+				{
+					p->dirty = 0;
+				}
 			}
 
 			p = graph->edges[ path[j] ];
 
-			while (p->target != prev && p != NULL) 
+			while (p != NULL && p->target != prev) 
 			{
 				p = p->next;
 			}
 
-			p->capacity -= weight;
-			p->weight += weight;
+			if (p) {
+				p->capacity -= weight;
+				p->weight += weight;
 
-			if (p->capacity == 0)
-			{
-				p->dirty = 0;
+				if (p->capacity == 0)
+				{
+					p->dirty = 0;
+				}
 			}
 		}
 
