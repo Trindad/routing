@@ -1,7 +1,8 @@
 /**
  * ------------------------------------------------------------------------
  *
- *
+ * Dada uma topologia e sua matriz de trafego, o programa deve gerar como
+ * saída a capacidade necessária para cada ligação
  * 
  * Alunos: Silvana Trindade e Maurício André Cinelli
  * Ano: 2015
@@ -177,6 +178,23 @@ vector< vector<int> > readTrafficMatrix(int nodes, string _filename)
 }
 
 /**
+ * Insere caminho mínimo ao inverso
+ */
+void insertShortestPath(vector<int> parent, vector<int> &path, int target)
+{
+	int u = target;
+
+	path.push_back( target );
+
+	while( parent[u] != -1 )
+	{
+		cout<<" "<<parent[u] <<endl;
+		path.push_back( parent[u] );
+		u = parent[u];
+	}
+}
+
+/**
  * Implementação para encontrar um caminho mínimo de u até v
  */
 vector<int> shortestPath( Graph *graph, int source, int target) 
@@ -188,7 +206,8 @@ vector<int> shortestPath( Graph *graph, int source, int target)
 	int w;						//candidato a próximo nó
 	int capacity;				//peso da aresta
 	int cap;					//melhor distância atual para o nó de partida
-	vector<int> parent = vector<int> (graph->numberOfNodes, -1);
+	vector<int> path;			//armazena caminho mínimo
+	vector<int> parent = vector<int> ( graph->numberOfNodes, -1);
 
 	inTree = vector<bool> ( graph->numberOfNodes, false);
 	capacities = vector<int> ( graph->numberOfNodes, std::numeric_limits<int>::max() );
@@ -202,15 +221,16 @@ vector<int> shortestPath( Graph *graph, int source, int target)
 	while( inTree[target] == false )
 	{	
 		p = graph->edges[v];//p recebe os nós adjacentes de v
-
+		
 		if (p == NULL)
 		{
-			cout<<"Grafo com nó "<<v<<" desconexo."<<endl;
-			exit(1);
+			cout<<"Topologia com nó "<<v<<" desconexo."<<endl;
+			exit(EXIT_FAILURE);
 		}
 
 		while( p != NULL )
 		{
+			//aresta indisponível
 			if ( p->dirty == 0 )
 			{
 				continue;
@@ -222,10 +242,14 @@ vector<int> shortestPath( Graph *graph, int source, int target)
 			/**
 			 * Verificação de caminho
 			 */
-			if ( capacities[w] > ( capacities[v] + capacity ) && inTree[w] == false)
+			if ( capacities[w] > ( capacities[v] + capacity ) && inTree[w] == false )
 			{
 				capacities[w] = capacities[v] + capacity;
-				parent[v] = v;
+				parent[w] = v;
+
+				cout<<" v "<<v<<" w "<<w<<" capacity "<<capacities[w]<<endl;
+				
+				//insere predecessor na matriz 		
 			}
 
 			if (target == w)	
@@ -247,29 +271,33 @@ vector<int> shortestPath( Graph *graph, int source, int target)
 				v = i;
 			}
 		}
-
+		
 		inTree[v] = true;
 	}
 
-	vector<int> path;
-	
-	//cout << "Imprime caminho mínimo:\n";
+	cout<<"-----------------------------------\n"<<endl;
 
-	/**
-	 * insere caminho mínimo encontrado pelo algoritmo de Dijkstra
-	 */
-	for (unsigned int i = 0; i < parent.size(); i++)
+	// for (unsigned int i = 1; i < graph->numberOfNodes; i++)
+	// {
+	// 	for (unsigned int j = 1; j < graph->numberOfNodes; j++)
+	// 	{
+	// 		cout<<" "<<parent[i][j];
+	// 	}
+	// 	cout<<endl;
+	// }
+	insertShortestPath(parent,path,target);
+	
+	for (unsigned int j = 1; j < parent.size(); j++)
 	{
-		if (parent[i] > -1) 
-		{
-			path.push_back(i);
-			//cout << i << " ";
-		}
+		cout<<" "<<parent[j];
+	}
+	cout<<endl;
+	for (unsigned int j = 0; j < path.size(); j++)
+	{
+		cout<<" "<<path[j];
 	}
 
-	//cout<<endl;
-	path.push_back(target);
-
+	cout<<"\n-----------------------------------\n"<<endl;
 	return path;
 }
 
@@ -344,7 +372,8 @@ void updateCapacityAndWeightByPath(Graph *graph,vector<vector<int>> traffic,vect
 				p = p->next;
 			}
 
-			if (p) {
+			if (p) 
+			{
 				p->capacity -= weight;
 				p->weight += weight;
 
@@ -378,7 +407,9 @@ void updateCapacityAndWeightByPath(Graph *graph,vector<vector<int>> traffic,vect
 	for (int i = 1; i < graph->numberOfNodes; i++)
 	{
 		p = graph->edges[i];
+
 		cout<<"node "<<i<<endl;
+
 		while(p != NULL)
 		{
 			cout<<" "<<p->target<<"( "<<p->capacity<<" , "<<p->weight<<" )";
@@ -474,7 +505,7 @@ void execute(Graph *graph, vector< vector<int> > traffic)
 
 void write(Graph *graph, string fileName) 
 {
-	vector<vector<int>> temp = vector<vector<int>> (graph->numberOfNodes,vector<int>(graph->numberOfNodes,0));
+	vector<vector<int>> temp = vector<vector<int>> (graph->numberOfNodes,vector<int>(graph->numberOfNodes,0) );
 	ofstream saida;
 
     saida.open (fileName);
