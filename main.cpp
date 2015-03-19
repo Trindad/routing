@@ -44,5 +44,7 @@ int main(int argc, const char * argv[])
 
 	write(graph,fileName);
 
+	cout << "\t\x1b[32mSimulação completa! Confira o arquivo \"" << fileName << "\" para ver os resultados da simulação.\x1b[0m" << endl; 
+
 	return EXIT_SUCCESS;
 }

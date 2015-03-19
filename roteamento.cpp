@@ -6,7 +6,10 @@ int sumDemand;
 
 void help()
 {
-
+	cout << "Simulador de rede" << endl;
+	cout << "=================" << endl << endl;
+	cout << "Para executar o programa, utilize o comando seguindo a estrutura abaixo:" << endl << endl;
+	cout << "\t\x1b[32m./main <caminho_arquivo_topologia> <caminho_arquivo_trafego>\x1b[0m" << endl << endl; 
 }
 
 void InsertEdge(Graph *graph,int source, int target, bool directed)
@@ -89,7 +92,7 @@ Graph *readGraph(Graph *graph, string _filename)
   } 
   else
   {
-    printf("Could not open graph file.\n");
+    printf("\x1b[31mNão foi possível abrir o arquivo de topologia da rede.\x1b[0m\n");
     exit(EXIT_FAILURE);
   }
 
@@ -127,7 +130,7 @@ vector< vector<int> > readTrafficMatrix(int nodes, string _filename)
 	} 
 	else
 	{
-		printf("Could not open traffic file.\n");
+		printf("\x1b[31mNão foi possível abrir o arquivo de tráfego da rede.\x1b[0m\n");
 		exit(EXIT_FAILURE);
 	}
 
@@ -180,7 +183,7 @@ vector<int> shortestPath( Graph *graph, int source, int target)
 		
 		if (p == NULL)
 		{
-			cout<<"Topologia com nó "<<v<<" desconexo."<<endl;
+			cout<<"\x1b[31mTopologia com nó "<<v<<" desconexo.\x1b[0m"<<endl;
 			return path;
 		}
 
@@ -255,7 +258,7 @@ void updateWeight(Graph *graph, vector< vector<int> > trafficMatrix)
 
 		if (graph->edges[i] == NULL)
 		{
-			exit(EXIT_FAILURE);
+			continue;
 		}
 
 		while(p != NULL)
