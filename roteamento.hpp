@@ -33,7 +33,7 @@ typedef struct _e
 	int weight; 				//peso atualizado da aresta
 	int capacity; 				//capacidade da aresta
 	struct _e *next;			//ponteiro para o próximo nó adjacente
-	unsigned int dirty; 		//bit correspodente a aresta ativa ou não
+	unsigned int active; 		//bit correspodente a aresta ativa ou não
 }Edge;
 
 typedef struct

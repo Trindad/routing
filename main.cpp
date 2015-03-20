@@ -46,5 +46,23 @@ int main(int argc, const char * argv[])
 
 	cout << "\t\x1b[32mSimulação completa! Confira o arquivo \"" << fileName << "\" para ver os resultados da simulação.\x1b[0m" << endl; 
 
+	Edge *p;
+
+	for (int i = 1; i < graph->numberOfNodes; i++)
+	{
+		p = graph->edges[i];
+
+		while(p != NULL)
+		{
+			Edge *t = p;
+
+			p = p->next;
+
+			free(t);
+		}
+	}
+
+	free(graph);
+
 	return EXIT_SUCCESS;
 }

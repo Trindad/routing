@@ -24,7 +24,7 @@ void InsertEdge(Graph *graph,int source, int target, bool directed)
 
 	e->weight = 0;//peso inicial das arestas é zero
 	e->target = target;
-	e->dirty = 1;
+	e->active = 1;
 	e->next = graph->edges[source];
 
 	graph->edges[source] = e; 
@@ -190,8 +190,9 @@ vector<int> shortestPath( Graph *graph, int source, int target)
 		while( p != NULL )
 		{
 			//aresta indisponível
-			if ( p->dirty == 0 )
+			if ( p->active == 0 )
 			{
+				p = p->next;
 				continue;
 			}
 			
@@ -270,15 +271,14 @@ void updateWeight(Graph *graph, vector< vector<int> > trafficMatrix)
 				p->weight = trafficMatrix[i][target];
 				p->capacity -= p->weight ;//diminiu a capacidade da ligação
 
-				if (p->capacity == 0)
+				if (p->capacity <= 0)
 				{
-					p->dirty = 0;//aresta passa a ser inativa
+					p->active = 0;//aresta passa a ser inativa
 				}
 			}
 
 			p = p->next;
 		}
-
 	}
 }
 
@@ -317,7 +317,7 @@ void updateCapacityAndWeightByPath(Graph *graph,vector<vector<int>> traffic,vect
 
 				if (p->capacity == 0)
 				{
-					p->dirty = 0;
+					p->active = 0;
 				}
 			}
 
@@ -334,7 +334,7 @@ void updateCapacityAndWeightByPath(Graph *graph,vector<vector<int>> traffic,vect
 
 				if (p->capacity == 0)
 				{
-					p->dirty = 0;
+					p->active = 0;
 				}
 			}
 		}
@@ -381,7 +381,6 @@ bool isAdjacent(Graph *graph,int source,int target)
 
 void execute(Graph *graph, vector< vector<int> > traffic) 
 {
-
 	/**
 	 * Inicializa capacidade das ligações
 	 */
@@ -397,7 +396,8 @@ void execute(Graph *graph, vector< vector<int> > traffic)
 		while(p != NULL)
 		{
 			p->capacity = maxCapacity;
-			p->dirty = 1;
+
+			p->active = 1;
 			p = p->next;
 		}
 	}
